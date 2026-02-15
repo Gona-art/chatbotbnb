@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BnB Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            margin-top: 50px;
+        }
+        #chat-container {
+            width: 400px;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin: 5px 0;
+        }
+        .user {
+            text-align: right;
+            color: blue;
+        }
+        .bot {
+            text-align: left;
+            color: green;
+        }
+        input {
+            width: 75%;
+            padding: 8px;
+        }
+        button {
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <h3>BnB Assistant</h3>
+    <div id="messages"></div>
+    <input type="text" id="input" placeholder="Ask something..." />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    const sessionId = "web_user_" + Date.now();
+
+    async function sendMessage() {
+        const input = document.getElementById("input");
+        const message = input.value;
+        if (!message) return;
+
+        addMessage(message, "user");
+        input.value = "";
+
+        const response = await fetch("http://127.0.0.1:8000/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+        addMessage(data.reply, "bot");
+    }
+
+    function addMessage(text, sender) {
+        const div = document.createElement("div");
+        div.classList.add("message", sender);
+        div.innerText = text;
+        document.getElementById("messages").appendChild(div);
+    }
+</script>
+
+</body>
+</html>
