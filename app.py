@@ -9,8 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from models import ChatRequest, ChatResponse
 from services.chatbot import ChatService
+from database import init_db   # ✅ STEP 2 — IMPORT
 
 app = FastAPI(title="BnB Chatbot API")
+
+init_db()  # ✅ STEP 2 — INITIALIZE DATABASE
 
 app.add_middleware(
     CORSMiddleware,

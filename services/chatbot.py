@@ -8,6 +8,7 @@ from typing import Dict, List
 
 from openai import AsyncOpenAI
 from config import settings
+from database import is_available, calculate_price
 
 
 class ChatService:
@@ -53,8 +54,44 @@ class ChatService:
         return reply
 
     def _mock_response(self, message: str) -> str:
-        message = message.lower()
+        message = message.lower().strip()
 
+        # Booking intent trigger
+        if "book" in message or "availability" in message:
+            return (
+                "I'd be happy to check availability 😊\n"
+                "Please provide your dates in this format:\n"
+                "YYYY-MM-DD to YYYY-MM-DD"
+            )
+
+        # Date parsing logic
+        if "to" in message and "-" in message:
+            try:
+                parts = message.split("to")
+                check_in = parts[0].strip()
+                check_out = parts[1].strip()
+
+                if is_available(check_in, check_out):
+                    price = calculate_price(check_in, check_out)
+
+                    return (
+                        f"🎉 Great news! The property is available.\n"
+                        f"Total price for your stay: ${price:.2f}\n\n"
+                        f"Would you like to proceed with booking?"
+                    )
+                else:
+                    return (
+                        "Unfortunately those dates are not available.\n"
+                        "Would you like to try different dates?"
+                    )
+
+            except Exception:
+                return (
+                    "Please provide dates in the correct format:\n"
+                    "YYYY-MM-DD to YYYY-MM-DD"
+                )
+
+        # General FAQ fallback
         faq = {
             "check-in": "Check-in starts at 3 PM.",
             "check out": "Check-out is at 11 AM.",
@@ -68,4 +105,4 @@ class ChatService:
             if key in message:
                 return value
 
-        return "I'd be happy to help! Could you provide more details?"
+        return "How can I assist you with your stay today?"
