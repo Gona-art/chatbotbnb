@@ -8,13 +8,14 @@ from typing import Dict, List
 
 from openai import AsyncOpenAI
 from config import settings
-from database import is_available, calculate_price
+from database import is_available, calculate_price, create_booking
 
 
 class ChatService:
     def __init__(self) -> None:
         self.dev_mode = os.getenv("DEV_MODE", "true").lower() == "true"
         self.sessions: Dict[str, List[dict]] = {}
+        self.pending_bookings: Dict[str, Dict[str, str]] = {}
 
         self.system_prompt = {
             "role": "system",
@@ -31,7 +32,7 @@ class ChatService:
 
     async def generate_response(self, session_id: str, message: str) -> str:
         if self.dev_mode:
-            return self._mock_response(message)
+            return self._mock_response(session_id, message)
 
         if session_id not in self.sessions:
             self.sessions[session_id] = [self.system_prompt]
@@ -53,10 +54,18 @@ class ChatService:
 
         return reply
 
-    def _mock_response(self, message: str) -> str:
+    def _mock_response(self, session_id: str, message: str) -> str:
         message = message.lower().strip()
 
-        # Booking intent trigger
+        # If user confirms booking
+        if message in ["yes", "confirm", "proceed"]:
+            if session_id in self.pending_bookings:
+                booking = self.pending_bookings.pop(session_id)
+                create_booking(booking["check_in"], booking["check_out"])
+                return "🎉 Your booking has been confirmed! We look forward to hosting you."
+            return "There is no pending booking to confirm."
+
+        # Booking intent
         if "book" in message or "availability" in message:
             return (
                 "I'd be happy to check availability 😊\n"
@@ -64,7 +73,7 @@ class ChatService:
                 "YYYY-MM-DD to YYYY-MM-DD"
             )
 
-        # Date parsing logic
+        # Date parsing
         if "to" in message and "-" in message:
             try:
                 parts = message.split("to")
@@ -74,24 +83,26 @@ class ChatService:
                 if is_available(check_in, check_out):
                     price = calculate_price(check_in, check_out)
 
+                    self.pending_bookings[session_id] = {
+                        "check_in": check_in,
+                        "check_out": check_out,
+                    }
+
                     return (
                         f"🎉 Great news! The property is available.\n"
                         f"Total price for your stay: ${price:.2f}\n\n"
-                        f"Would you like to proceed with booking?"
+                        f"Type 'yes' to confirm your booking."
                     )
                 else:
-                    return (
-                        "Unfortunately those dates are not available.\n"
-                        "Would you like to try different dates?"
-                    )
+                    return "Unfortunately those dates are not available."
 
             except Exception:
                 return (
-                    "Please provide dates in the correct format:\n"
+                    "Please provide dates in correct format:\n"
                     "YYYY-MM-DD to YYYY-MM-DD"
                 )
 
-        # General FAQ fallback
+        # FAQ fallback
         faq = {
             "check-in": "Check-in starts at 3 PM.",
             "check out": "Check-out is at 11 AM.",
