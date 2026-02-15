@@ -22,6 +22,10 @@ app.add_middleware(
 
 chat_service = ChatService()
 
+@app.get("/")
+async def root():
+    return {"message": "BnB Chatbot API is running."}
+
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
