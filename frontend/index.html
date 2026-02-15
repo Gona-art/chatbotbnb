@@ -1,88 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>BnB Chatbot</title>
+    <title>BnB Chat Widget</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            margin-top: 50px;
+        #chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
         }
-        #chat-container {
-            width: 400px;
+
+        #chat-box {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
             background: white;
             border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
         }
+
         #messages {
-            height: 300px;
+            flex: 1;
+            padding: 10px;
             overflow-y: auto;
-            margin-bottom: 10px;
         }
-        .message {
-            margin: 5px 0;
+
+        #input-area {
+            display: flex;
         }
-        .user {
-            text-align: right;
-            color: blue;
-        }
-        .bot {
-            text-align: left;
-            color: green;
-        }
+
         input {
-            width: 75%;
-            padding: 8px;
+            flex: 1;
+            padding: 5px;
         }
-        button {
-            padding: 8px;
+
+        button.send {
+            padding: 5px;
         }
     </style>
 </head>
 <body>
 
-<div id="chat-container">
-    <h3>BnB Assistant</h3>
+<button id="chat-button" onclick="toggleChat()">💬</button>
+
+<div id="chat-box">
     <div id="messages"></div>
-    <input type="text" id="input" placeholder="Ask something..." />
-    <button onclick="sendMessage()">Send</button>
+    <div id="input-area">
+        <input type="text" id="input" placeholder="Ask something..." />
+        <button class="send" onclick="sendMessage()">Send</button>
+    </div>
 </div>
 
 <script>
-    const sessionId = "web_user_" + Date.now();
+const sessionId = "web_" + Date.now();
+const API_URL = "https://chatbotbnb.onrender.com/chat";
 
-    async function sendMessage() {
-        const input = document.getElementById("input");
-        const message = input.value;
-        if (!message) return;
+function toggleChat() {
+    const box = document.getElementById("chat-box");
+    box.style.display = box.style.display === "flex" ? "none" : "flex";
+}
 
-        addMessage(message, "user");
-        input.value = "";
+async function sendMessage() {
+    const input = document.getElementById("input");
+    const message = input.value;
+    if (!message) return;
 
-        const response = await fetch("https://chatbotbnb.onrender.com/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                session_id: sessionId,
-                message: message
-            })
-        });
+    addMessage(message, "user");
+    input.value = "";
 
-        const data = await response.json();
-        addMessage(data.reply, "bot");
-    }
+    const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            session_id: sessionId,
+            message: message
+        })
+    });
 
-    function addMessage(text, sender) {
-        const div = document.createElement("div");
-        div.classList.add("message", sender);
-        div.innerText = text;
-        document.getElementById("messages").appendChild(div);
-    }
+    const data = await response.json();
+    addMessage(data.reply, "bot");
+}
+
+function addMessage(text, sender) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    document.getElementById("messages").appendChild(div);
+}
 </script>
 
 </body>
