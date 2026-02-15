@@ -6,14 +6,16 @@ Run with:
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 
 from models import ChatRequest, ChatResponse
 from services.chatbot import ChatService
-from database import init_db   # ✅ STEP 2 — IMPORT
+from database import init_db
 
 app = FastAPI(title="BnB Chatbot API")
 
-init_db()  # ✅ STEP 2 — INITIALIZE DATABASE
+# Initialize database
+init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,9 +27,25 @@ app.add_middleware(
 
 chat_service = ChatService()
 
+
 @app.get("/")
 async def root():
     return {"message": "BnB Chatbot API is running."}
+
+
+@app.get("/debug/bookings")
+async def debug_bookings():
+    """
+    Debug endpoint to view all bookings.
+    Remove in production.
+    """
+    conn = sqlite3.connect("bookings.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM bookings")
+    rows = cursor.fetchall()
+    conn.close()
+
+    return {"bookings": rows}
 
 
 @app.post("/chat", response_model=ChatResponse)
